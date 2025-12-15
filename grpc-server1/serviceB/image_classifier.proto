@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+service ImageClassifier {
+  rpc UploadImage (ImageRequest) returns (ImageResponse);
+}
+
+message ImageRequest {
+  bytes imageData = 1;
+}
+
+message ImageResponse {
+  string label = 1;
+  double confidence = 2;
+}

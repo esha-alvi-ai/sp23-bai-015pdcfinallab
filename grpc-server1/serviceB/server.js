@@ -1,21 +1,38 @@
+// serviceB/server.js
 const grpc = require("@grpc/grpc-js");
 const protoLoader = require("@grpc/proto-loader");
-const { classifyImage } = require("./classifier");
+const path = require("path");
 
-const PROTO_PATH = "../protos/image.proto";
+// Load proto file
+const PROTO_PATH = path.join(__dirname, "image_classifier.proto");
 const packageDef = protoLoader.loadSync(PROTO_PATH);
 const grpcObj = grpc.loadPackageDefinition(packageDef);
-const imagePackage = grpcObj.imageclassifier;
+const imagePackage = grpcObj.ImageClassifier;
+
+// Fake AI classification
+const labels = ["cat", "dog", "car", "bird"];
 
 function uploadImage(call, callback) {
-  const result = classifyImage(call.request.imageData);
-  callback(null, result);
+  const start = Date.now();
+
+  const label = labels[Math.floor(Math.random() * labels.length)];
+  const confidence = Number((Math.random() * 0.3 + 0.7).toFixed(2));
+
+  const responseTime = Date.now() - start;
+
+  console.log(`ServiceB: classified image as ${label} (${confidence}) in ${responseTime}ms`);
+  
+  callback(null, { label, confidence });
 }
 
 const server = new grpc.Server();
-server.addService(imagePackage.ImageClassifier.service, { UploadImage: uploadImage });
+server.addService(imagePackage.service, { UploadImage: uploadImage });
 
-server.bindAsync("0.0.0.0:50052", grpc.ServerCredentials.createInsecure(), () => {
-  server.start();
-  console.log("🚀 AI Model Service running at localhost:50052");
-});
+server.bindAsync(
+  "localhost:50051",
+  grpc.ServerCredentials.createInsecure(),
+  () => {
+    console.log("🚀 ServiceB gRPC running at localhost:50051");
+    server.start();
+  }
+);
